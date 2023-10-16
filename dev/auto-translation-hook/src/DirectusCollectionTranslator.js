@@ -283,7 +283,16 @@ module.exports = class DirectusCollectionTranslator {
                     try {
                         let translatedValue = await translator.translate(fieldValue, sourceTranslation?.[DirectusCollectionTranslator.FIELD_LANGUAGES_ID_OR_CODE]?.code, language_code);
                         if (!!translatedValue) {
-                            translatedItem[field] = translatedValue;
+                            if(field === 'slug'){
+                                translatedItem[field] = translatedValue
+                                    .toLowerCase()
+                                    .trim()
+                                    .replace(/[^\w\s-]/g, '')
+                                    .replace(/[\s_-]+/g, '-')
+                                    .replace(/^-+|-+$/g, '');
+                            } else {
+                                translatedItem[field] = translatedValue;
+                            }
                         } else {
                             //TODO: check if this would ever happen
                         }
