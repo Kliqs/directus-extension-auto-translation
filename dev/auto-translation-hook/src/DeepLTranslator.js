@@ -28,8 +28,8 @@ module.exports = class DeepLTranlator {
 
     async translate(text, source_language, destination_language) {
         let translationResponse = null;
-        let sourceLanguageCode = this.getDeepLLanguageCode(source_language);
-        let destinationLanguageCode = this.getDeepLLanguageCode(destination_language);
+        let sourceLanguageCode = this.getDeepLLanguageCode(source_language, true);
+        let destinationLanguageCode = this.getDeepLLanguageCode(destination_language, false);
 
         try{
             translationResponse = await this.translateRaw(text, sourceLanguageCode, destinationLanguageCode);
@@ -113,7 +113,7 @@ module.exports = class DeepLTranlator {
      * Private Methods
      */
 
-    getDeepLLanguageCode(directus_language_code) {
+    getDeepLLanguageCode(directus_language_code, source = true) {
         /** directus_language_code
          * e.g. "en-US" -> "en"
          */
@@ -178,9 +178,8 @@ module.exports = class DeepLTranlator {
          Chinese (simplified) (zh) supports formality
          */
 
-        if(!!directus_language_code){
-            let splits = directus_language_code.split("-");
-            return splits[0];
+        if(!source && directus_language_code === 'en'){
+            return 'en-GB';
         }
         return directus_language_code;
     }

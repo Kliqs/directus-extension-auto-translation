@@ -3,6 +3,7 @@ const fs = require('fs')
 const path = require('path')
 const ENV_NAME_API_KEY = "AUTO_TRANSLATE_API_KEY";
 const ENV_NAME_PATH_TO_SAVE_API_KEY = "AUTO_TRANSLATE_API_KEY_SAVING_PATH";
+const ENV_TRANSLATION_SOURCE = 'TRANSLATION_SOURCE';
 const API_KEY_PLACEHOLDER = "XXXXXXXXXXXXXXXXXXXXX";
 
 const FIELDNAME_AUTH_KEY = "auth_key";
@@ -15,6 +16,7 @@ module.exports = class TranslatorSettings {
         this.database = database;
         this.itemsServiceCreator = new ItemsServiceCreator(services, database, schema);
         this.apiKey = null; // To hold the API key in memory
+        this.translationSource = null;
     }
 
     async init(){
@@ -32,6 +34,13 @@ module.exports = class TranslatorSettings {
                 console.log("File not found yet. Will create it later")
             }
         }
+        
+        const translationSource = process.env[ENV_TRANSLATION_SOURCE];
+        console.log("TRANSLATION SOURCE: "+translationSource);
+        if (translationSource) {
+            this.translationSource = translationSource;
+        }
+        
     }
 
     saveApiKeySecureIfConfiguredAndReturnPayload(payload){

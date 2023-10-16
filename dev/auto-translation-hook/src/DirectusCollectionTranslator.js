@@ -24,22 +24,28 @@ module.exports = class DirectusCollectionTranslator {
         return false;
     }
 
-    static getSourceTranslationFromTranslations(translations, schema, collectionName) {
+    static getSourceTranslationFromTranslations(translations, schema, collectionName, translatorSettings) {
         if (!!translations && translations.length > 0) {
             for (let translation of translations) {
-                let let_be_source_for_translation = DirectusCollectionTranslator.getValueFromPayloadOrDefaultValue(translation, DirectusCollectionTranslator.FIELD_BE_SOURCE_FOR_TRANSLATION, schema, collectionName);
-                if (!!let_be_source_for_translation) {
-                    return translation;
+                if(!!translatorSettings.translationSource){
+                    if(translation?.[DirectusCollectionTranslator.FIELD_LANGUAGES_ID_OR_CODE]?.code == translatorSettings.translationSource){
+                        return translation;
+                    }
+                } else {
+                    let let_be_source_for_translation = DirectusCollectionTranslator.getValueFromPayloadOrDefaultValue(translation, DirectusCollectionTranslator.FIELD_BE_SOURCE_FOR_TRANSLATION, schema, collectionName);
+                    if (!!let_be_source_for_translation) {
+                        return translation;
+                    }
                 }
             }
         }
     }
 
-    static getSourceTranslationFromListsOfTranslations(listsOfTranslations, schema, collectionName) {
+    static getSourceTranslationFromListsOfTranslations(listsOfTranslations, schema, collectionName, translatorSettings) {
         if (!!listsOfTranslations && listsOfTranslations.length > 0) {
             for (let i = 0; i < listsOfTranslations.length; i++) {
                 let translations = listsOfTranslations[i];
-                let sourceTranslation = DirectusCollectionTranslator.getSourceTranslationFromTranslations(translations, schema, collectionName);
+                let sourceTranslation = DirectusCollectionTranslator.getSourceTranslationFromTranslations(translations, schema, collectionName, translatorSettings);
                 if (!!sourceTranslation) {
                     return sourceTranslation;
                 }
@@ -114,8 +120,8 @@ module.exports = class DirectusCollectionTranslator {
             let newTranslationsCreateLanguageDict = DirectusCollectionTranslator.parseTranslationListToLanguagesCodeDict(newTranslationsCreateActions);
             let newTranslationsUpdateLanguageDict = DirectusCollectionTranslator.parseTranslationListToLanguagesCodeDict(newTranslationsUpdateActions);
 
-            let sourceTranslationInExistingItem = DirectusCollectionTranslator.getSourceTranslationFromListsOfTranslations([currentTranslations], schema, collectionName);
-            let sourceTranslationInPayload = DirectusCollectionTranslator.getSourceTranslationFromListsOfTranslations([newTranslationsCreateActions, newTranslationsUpdateActions], schema, collectionName);
+            let sourceTranslationInExistingItem = DirectusCollectionTranslator.getSourceTranslationFromListsOfTranslations([currentTranslations], schema, collectionName, translatorSettings);
+            let sourceTranslationInPayload = DirectusCollectionTranslator.getSourceTranslationFromListsOfTranslations([newTranslationsCreateActions, newTranslationsUpdateActions], schema, collectionName, translatorSettings);
 
             let sourceTranslation = sourceTranslationInPayload || sourceTranslationInExistingItem
             //TODO Maybe throw an error if multiple source translations are found?
@@ -169,6 +175,10 @@ module.exports = class DirectusCollectionTranslator {
                                 }
                                 //console.log("The translation in the payload will be created: ", createTranslation);
 
+                                if(!!translatorSettings.translationSource){
+                                    createTranslation = true;
+                                }
+
                                 if (!!createTranslation) {
                                     //console.log("Create translation");
                                     let translatedItem = await DirectusCollectionTranslator.translateTranslationItem(sourceTranslation, language_code, translator, translatorSettings, fieldsToTranslate);
@@ -211,6 +221,10 @@ module.exports = class DirectusCollectionTranslator {
                                 if (DirectusCollectionTranslator.isValueDefined(letBeTranslatedInPayload)) { //if payload has false or true, overwrite existing value
                                     //console.log("letBeTranslatedInPayload is defined");
                                     letBeTranslated = letBeTranslatedInPayload;
+                                }
+
+                                if(!!translatorSettings.translationSource){
+                                    letBeTranslated = true;
                                 }
 
                                 if (letBeTranslated) {
