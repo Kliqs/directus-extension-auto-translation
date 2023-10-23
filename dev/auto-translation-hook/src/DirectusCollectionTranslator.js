@@ -313,6 +313,9 @@ module.exports = class DirectusCollectionTranslator {
     }
 
     static getTranslationCollectionName(collectionName) {
+        if(collectionName.startsWith("directus_")){
+            return "junction_ " + collectionName + "_translations";
+        }
         return collectionName + "_translations";
     }
 
