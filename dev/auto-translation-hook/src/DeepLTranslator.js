@@ -70,7 +70,9 @@ module.exports = class DeepLTranlator {
         console.log("source_language_code: "+source_language_code)
         console.log("destination_language_code: "+destination_language_code)
 
-        let translationResponse = await this.translator.translateText(textToTranslate, source_language_code, destination_language_code);
+        let translationResponse = await this.translator.translateText(textToTranslate, source_language_code, destination_language_code, {
+            tagHandling: 'html',
+        });
         let translation = translationResponse?.text;
 
         //replace all values in dictWithReplacement with their keys
