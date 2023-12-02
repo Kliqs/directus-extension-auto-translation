@@ -180,7 +180,6 @@ module.exports = class DirectusCollectionTranslator {
                                 }
 
                                 if (!!createTranslation) {
-                                    //console.log("Create translation");
                                     let translatedItem = await DirectusCollectionTranslator.translateTranslationItem(sourceTranslation, language_code, translator, translatorSettings, fieldsToTranslate);
                                     translationsToUpdate.push({
                                         ...existingTranslation,
@@ -228,7 +227,6 @@ module.exports = class DirectusCollectionTranslator {
                                 }
 
                                 if (letBeTranslated) {
-                                    //console.log("Create translation");
                                     let translatedItem = await DirectusCollectionTranslator.translateTranslationItem(sourceTranslation, language?.code, translator, translatorSettings, fieldsToTranslate);
                                     translationsToCreate.push({
                                         ...translatedItem
@@ -314,7 +312,7 @@ module.exports = class DirectusCollectionTranslator {
 
     static getTranslationCollectionName(collectionName) {
         if(collectionName.startsWith("directus_")){
-            return "junction_ " + collectionName + "_translations";
+            return "junction_" + collectionName + "_translations";
         }
         return collectionName + "_translations";
     }

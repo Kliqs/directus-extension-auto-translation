@@ -33,7 +33,96 @@ async function getCurrentItemForTranslation(itemsService, meta) {
     return currentItem;
 }
 
+async function handleFilesTranslations(tablename, payload, meta, context, getSchema, services, logger) {
+
+    let database = context.database;
+
+    let {
+        itemsServiceCreator,
+        translatorSettings,
+        translator,
+        schema
+    } = await getAndInitItemsServiceCreatorAndTranslatorSettingsAndTranslatorAndSchema(services, database, getSchema, logger);
+    
+    let autoTranslate = await translatorSettings.isAutoTranslationEnabled();
+
+    if(!autoTranslate){
+        return payload;
+    }
+
+    let itemsService = await itemsServiceCreator.getItemsService(tablename);
+
+    
+
+    let enrichedPayload = {
+        ...payload
+    }
+    
+    if(meta.event == 'items.update'){
+        
+        let currentItem = await itemsService.readOne(meta.keys[0], {fields: ["*"]});
+
+        enrichedPayload = {
+            ...currentItem,
+            languages_code: {
+                code: currentItem.languages_code,
+            },
+            ...payload
+        }
+
+    }
+
+    if((enrichedPayload?.languages_code !== translatorSettings.translationSource && enrichedPayload?.languages_code?.code !== translatorSettings.translationSource) || !autoTranslate){
+        return payload;
+    }
+
+    let allTranslations = await itemsService.readByQuery({filter: {
+        directus_files_id: {
+            _eq: enrichedPayload.directus_files_id,
+        }
+    }, fields: ["*"]});
+    
+    const modifiedPayload =  await DirectusCollectionTranslator.modifyPayloadForTranslation({
+        translations: allTranslations
+    }, {
+        translations: {
+            create: meta.event === "items.create" ? [enrichedPayload] : [],
+            update: meta.event === "items.update" ? [enrichedPayload] : [],
+        }
+    }, translator, translatorSettings, itemsServiceCreator, schema, 'directus_files');
+
+    let promises = modifiedPayload.translations.create.map((item)=>{
+        if(item.languages_code.code === translatorSettings.translationSource || item.languages_code === translatorSettings.translationSource){
+            return Promise.resolve();
+        }
+
+        return itemsService.createOne({
+            ...item,
+            directus_files_id: enrichedPayload.directus_files_id
+        });
+        
+    });
+
+    promises.push(...modifiedPayload.translations.update.map((item)=>{
+        if(item.languages_code.code === translatorSettings.translationSource || item.languages_code === translatorSettings.translationSource){
+            return Promise.resolve();
+        }
+        return itemsService.updateOne(item.id, item);
+    }));
+
+    await Promise.all(promises);
+
+    return payload;
+
+}
+
 async function handleCreateOrUpdate(tablename, payload, meta, context, getSchema, services, logger) {
+
+
+    if(tablename === 'junction_directus_files_translations'){
+        return await handleFilesTranslations(tablename, payload, meta, context, getSchema, services, logger);
+    }
+    
     if (payload?.translations) {
         let database = context.database; //Have to get database here! https://github.com/directus/directus/discussions/13744
 
@@ -55,10 +144,15 @@ async function handleCreateOrUpdate(tablename, payload, meta, context, getSchema
 }
 
 function registerCollectionAutoTranslation(filter, getSchema, services, logger) {
-    let events = ["create", "update"];
+     let events = [
+	    "items.create",
+        "items.update",
+        "files.items.create",
+        "files.items.update",
+    ];
     for (let event of events) {
         filter(
-            "items." + event,
+            event,
             async (payload, meta, context) => {
                 let tablename = meta?.collection;
                 return await handleCreateOrUpdate(tablename, payload, meta, context, getSchema, services, logger);
